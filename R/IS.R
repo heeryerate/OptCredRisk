@@ -12,7 +12,7 @@
 #' @param DriftZ flag indicator on whether we need shift mean of risk factors
 #' @return average $L$, $P(L>X)$ and 95 percents confidence parameter $sigma$
 #' @export
-IS_TwoSteps_OneLoss_for_x <- function (IS_Sampling_Num, m, d, pk, ck, A, b, x, y, DriftZ = "yes"){
+IS_TwoSteps_OneLoss <- function (IS_Sampling_Num, m, d, pk, ck, A, b, x, y, DriftZ = "yes"){
   if(DriftZ == "yes"){
     Drift_mu <- Max_Jx_TwoSteps(d, m, ck, pk, A, b, x)
   }else{
@@ -102,7 +102,7 @@ IS_TwoSteps_LossSet <- function (IS_Sampling_Num, m, d, pk, ck, A, b, x, y, Drif
   Zdelta <- qnorm(1-delta/2)
 
   for (iter in 1:leny){
-    out <- IS_TwoSteps_OneLoss_for_x(IS_Sampling_Num, m, d, pk, ck, A, b, x, y[iter], DriftZ)
+    out <- IS_TwoSteps_OneLoss(IS_Sampling_Num, m, d, pk, ck, A, b, x, y[iter], DriftZ)
     L[iter] <- out[1]
     pLy[iter] <- out[2]
     sigmay[iter] <- out[3]

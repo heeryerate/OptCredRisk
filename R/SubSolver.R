@@ -1,6 +1,6 @@
 ########################################################################################
-#                                                                                      #        
-#                                      Packages                                        #                  
+#                                                                                      #
+#                                      Packages                                        #
 #                                                                                      #
 ########################################################################################
 if(TRUE){
@@ -9,16 +9,16 @@ if(TRUE){
 }
 
 ########################################################################################
-#                                                                                      #        
-#                                   Data Generated (1)                                 #                  
+#                                                                                      #
+#                                   Data Generated (1)                                 #
 #                                                                                      #
 ########################################################################################
 
-if(TRUE){
+if(FALSE){
   # epsm <- rep(0,m)                            # Initial idiosyncratic risk factor
   pk <- rep(0,m)                           # Initial default probability for each obligor
   xk <- rep(0,m)                              # Initial default threshold for each obligor
-  
+
   for (i in 1:m){
     # epsm[i] <- rnorm(1, mean = 0, sd = 1)
     pk[i] <- 0.01*(1+sin((16*pi/m)*i))
@@ -28,36 +28,36 @@ if(TRUE){
 }
 
 ########################################################################################
-#                                                                                      #        
-#                                  Data Generated (2)                                  #                  
+#                                                                                      #
+#                                  Data Generated (2)                                  #
 #                                                                                      #
 ########################################################################################
 
 if(FALSE){
-  
+
   epsm <- rep(0,m)                            # Initial idiosyncratic risk factor
   pk <- rep(0,m)                           # Initial default probability for each obligor
   xk <- rep(0,m)                              # Initial default threshold for each obligor
-  
+
   Timeweibull <- function(alpha, theta, lambda){
     res <- ((-1/alpha)*(log(1-0.99^(1/lambda))))^(1/theta)
     return (res)
   }
-  
+
   defaultprob <- function(t,alpha, theta, lambda){
     pk <- (1-exp(-alpha*(t^theta)))^lambda
     return (pk)
   }
-  
+
   epsk <- function(t,alpha, theta, lambda){
     epsm <- t/Timeweibull(alpha, theta, lambda)
     return (epsm)
   }
-  
+
   alpham <- runif(m,0.01,0.5)
   thetam <- runif(m, 0.1,15)
   lambdam <- runif(m,1,10)
-  
+
   for (i in 1:m){
     epsm[i] <- epsk(1,alpham[i], thetam[i], lambdam[i])
     pk[i] <- defaultprob(1.2,alpham[i], thetam[i], lambdam[i])
@@ -65,63 +65,65 @@ if(FALSE){
   }
 }
 
-########################################################################################
-#                                                                                      #        
-#                               Solver Data Generated                                  #                  
-#                                                                                      #
-########################################################################################
-
-if(TRUE){
-  Local_data <- function(matZ, veceps, rownum){
-    # bufA <- cbind(matZ, rep(veceps[rownum], n))
-    bufA <- cbind(matZ, rnorm(n,0,1))
-    bufb <- rep(xk[rownum], n)
-    reslist <- list(bufA, bufb)
-    return(reslist)
-  }
+#' reformulate sampling data
+#'
+#' @param matZ randomly generated systematic risk factors, matrix in (n,d) dimensional space
+#' @param veceps randomly generated idiosyncratic risk factors, vector in m dimension
+#' @param rownum index of obiligor, postive integer
+#' @param n number of scenarios, postive integer
+#' @return reformulated matrix (Z, eps_k) and x_k.e
+Local_data <- function(matZ, veceps, rownum, n){
+  # bufA <- cbind(matZ, rep(veceps[rownum], n))
+  bufA <- cbind(matZ, rnorm(n,0,1))
+  bufb <- rep(veceps[rownum], n)
+  reslist <- list(bufA, bufb)
+  return(reslist)
 }
 
+#' SDP solver for $norm(Ax-b)$
+#'
+#' @param matA matrix A, matrix in (n,d+1) dimensional space
+#' @param recb vector b, vector in n dimension
+#' @return optimal matrix X and it's rank
+sdp_solver <- function(matA, recb){
+  obj_mat <- list(-1*rbind(cbind(t(recb)%*%recb,-t(recb)%*% matA),cbind(-t(matA)%*% recb,t(matA)%*% matA)))
+  cons_mat <- list(list(as.matrix(Diagonal(x = c(0,rep(1,d+1))))),list(as.matrix(Diagonal(x = c(1,rep(0,d+1))))))
+  block_num <- c(1,1)
+  block_type <- list(type=c("s"),size=c(d+2))
+  res <- Rcsdp::csdp(obj_mat, cons_mat, block_num, block_type)
+  opti_X <- matrix(unlist(res$X),d+2,d+2)
+  opti_X_rank <- matrixcalc::matrix.rank(opti_X)
+  reslist <- list(opti_X, opti_X_rank)
+  return (reslist)
+}
+
+#' recovery vector from optimal matrix solution by SDP solver
+#'
+#' @param matX matrix X, matrix in (d+2,d+2) dimensional space
+#' @return approximately recoveried x
+sdprecovery_x <- function(matX){
+  x <- sign(matX[1,2:(d+2)])*(diag(matX)^(1/2))[2:(d+2)]
+  return(x)
+}
+
+
 ########################################################################################
-#                                                                                      #        
-#                 SDP relaxation Method to Solve Regression Subproblem                 #                  
+#                                                                                      #
+#                   Projection Method to Solve Regression Subproblem                   #
 #                                                                                      #
 ########################################################################################
 if(TRUE){
-  sdp_solver <- function(matA, recb){
-    obj_mat <- list(-1*rbind(cbind(t(recb)%*%recb,-t(recb)%*% matA),cbind(-t(matA)%*% recb,t(matA)%*% matA)))
-    cons_mat <- list(list(as.matrix(Diagonal(x = c(0,rep(1,d+1))))),list(as.matrix(Diagonal(x = c(1,rep(0,d+1))))))
-    block_num <- c(1,1)
-    block_type <- list(type=c("s"),size=c(d+2))
-    res <- Rcsdp::csdp(obj_mat, cons_mat, block_num, block_type)
-    opti_X <- matrix(unlist(res$X),d+2,d+2)
-    opti_X_rank <- matrixcalc::matrix.rank(opti_X)
-    reslist <- list(opti_X, opti_X_rank)
-    return (reslist)
-  }
-  
-  sdprecovery_x <- function(matX){
-    x <- sign(matX[1,2:(d+2)])*(diag(matX)^(1/2))[2:(d+2)]
-    return(x)
-  }
-}
-
-########################################################################################
-#                                                                                      #        
-#                   Projection Method to Solve Regression Subproblem                   #                  
-#                                                                                      #
-########################################################################################
-if(TRUE){ 
   # Define function to return x(\lambda) and y(\lambda)
   xy_lambda <- function(matA, vecb, lambda){
     dimA <- dim(matA)
-    bufmatA <- t(matA) %*% matA + lambda * diag(dimA[2])  
+    bufmatA <- t(matA) %*% matA + lambda * diag(dimA[2])
     bufvecb <- t(matA) %*% vecb
     x_lambda <- solve(bufmatA, bufvecb)
     y_lambda <- solve(bufmatA, x_lambda)
     xy_lambda <- list(x_lambda, y_lambda)
     return(xy_lambda)
   }
-  
+
   Projection_Main <- function(matA, vecb, lambda_init = 0, TOL = 1e-4, MAXITER = 1e+3){
     lambda <- lambda_init
     iter <- 0
@@ -148,8 +150,8 @@ if(TRUE){
 }
 
 ########################################################################################
-#                                                                                      #        
-#                         Loading coefficient generating                               #                  
+#                                                                                      #
+#                         Loading coefficient generating                               #
 #                                                                                      #
 ########################################################################################
 if(TRUE){
@@ -160,14 +162,14 @@ if(TRUE){
       reslist <- Local_data(Zd, epsm, k)
       matA <- reslist[[1]]
       recb <- reslist[[2]]
-      
+
       if(method == 0){
         vecak_bk <- Projection_Main(matA, recb)
         # print(norm((matA %*% vecak_bk - recb), type = "F"))
       }else{
         reslist <- sdp_solver(matA, recb)
         opti_X <- reslist[[1]]
-        
+
         vecak_bk <- sdprecovery_x(opti_X)
         print(norm((matA %*% vecak_bk - recb), type = "F"))
       }
@@ -180,31 +182,31 @@ if(TRUE){
 }
 
 ########################################################################################
-#                                                                                      #        
-#                                    TEST EXAMPLE                                      #                  
+#                                                                                      #
+#                                    TEST EXAMPLE                                      #
 #                                                                                      #
 ########################################################################################
 if(FALSE){
   Subprob_solver_test <- function(Zd, epsm, rownum = 1){
-    reslist <- Local_data(Zd, epsm, rownum)
+    reslist <- Local_data(Zd, epsm, rownum, n)
     matA <- reslist[[1]]
     recb <- reslist[[2]]
-    
+
     reslist <- sdp_solver(matA, recb)
     opti_X <- reslist[[1]]
-    
+
     xsdp <- sdprecovery_x(opti_X)
     print(xsdp)
-    
+
     xproj <- Projection_Main(matA, recb)
     print(xproj)
   }
-  
+
   loading_generate_test <- function(Zd, epsm, method = 0){
     reslist <- Loading_coeff(Zd, epsm, method)
     matA <- reslist[[1]]
     recb <- reslist[[2]]
-  
+
     print(matA)
     print(recb)
   }
