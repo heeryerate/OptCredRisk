@@ -1,8 +1,9 @@
 #' hello test function
 #'
-#' @param None
+#' @param x first
+#' @param y second
 #' @return Prints a string "Hello, world!"
 #' @export
-hello <- function() {
+hello <- function(x,y) {
   print("Hello, world!")
 }

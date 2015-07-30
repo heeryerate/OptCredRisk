@@ -4,10 +4,12 @@
 \alias{hello}
 \title{hello test function}
 \usage{
-hello()
+hello(x, y)
 }
 \arguments{
-\item{None}{}
+\item{x}{first}
+
+\item{y}{second}
 }
 \value{
 Prints a string "Hello, world!"
