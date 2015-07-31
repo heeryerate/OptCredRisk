@@ -5,7 +5,7 @@ Version: 0.1
 Date: 2015-07-29
 Author: Xi He <heeryerate@gmail.com>
 Maintainer: Xi He <heeryerate@gmail.com>
-Depends: R (>= 3.0.1), MASS, Matrix, ggplot2
+Depends: R (>= 3.0.1), MASS, Matrix, ggplot2, corrplot, Rcsdp, matrixcalc
 Description: R source code of all numerical experiment of OptCredRisk (Estimating Portfolio Loss Probabilities with Optimal Risk Loading Coefficients and Fixed Dependency among Obligors)
 License: Unlimited
 LazyData: TRUE
