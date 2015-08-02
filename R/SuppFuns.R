@@ -92,10 +92,14 @@ twisting_psitheta_equation <- function(theta, x, ck, pkZ){
 #' @param pkZ default probability conditional on Z, postive real value
 #' @return root of $phi'(theta) = x$
 findroot_twisting_psitheta_equation <- function(x, ck, pkZ){
-  theta <- uniroot(twisting_psitheta_equation,c(0,100), x, ck, pkZ, lower = 0,
+  theta <- try(uniroot(twisting_psitheta_equation,c(0,100), x, ck, pkZ, lower = 0,
                    upper = 100,
                    extendInt = "yes", check.conv = F,
-                   tol = 0.0001, trace = 100, maxiter = 100)
+                   tol = 0.0001, trace = 100, maxiter = 100))
+  if (class(theta) == "try-error"){
+    cat("Catch one theta error, set theta = 0")
+    theta <- data.frame(root = 0)
+  }
   return(theta$root)
 }
 
@@ -118,3 +122,17 @@ twisting_probability_psitheta <- function(theta, x, ck, pkZ){
 
   return(out)
 }
+
+#' Truncate a matrix into [-1,1]
+#'
+#' @param matA an input matrix
+#' @return output matrix
+trunMat <- function(matA){
+  dimA <- dim(matA)
+  matA[matA > 1] <- 1
+  matA[matA < -1] <- -1
+  return(matA)
+}
+
+# this is a sublime git test
+#  I deleted this line to see what will happen. return(matA)
